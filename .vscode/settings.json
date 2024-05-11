@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/2269e690-5e80-46fa-8cee-03a166ec1ab5/resourceGroups/appsvc_linux_centralus2/providers/Microsoft.Web/sites/msdocs-python-webapp-quickstart-VICTORBAR",
+    "appService.deploySubpath": "."
+}
