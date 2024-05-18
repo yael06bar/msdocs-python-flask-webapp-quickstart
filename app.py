@@ -621,12 +621,12 @@ class Mongo:
         result = collection.insert_one(data)
         
         print ("insert result :" , result)
-        result_str = str(result)
+        #result_str = str(result)
         #result_id = str(result["_id"])
         
-        if result_str:
+        if result.inserted_id:
 
-            return jsonify(response="Registration successful.", _id=result_str), 200
+            return jsonify(response="Registration successful.", _id=result.inserted_id), 200
         else:
             return jsonify(response="Registration failed."), 400
 
