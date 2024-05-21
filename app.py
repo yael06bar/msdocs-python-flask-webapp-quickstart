@@ -535,6 +535,10 @@ def create_workout():
                 return jsonify(error=str(e)), 400
         else:
             return jsonify(error='Invalid method'), 405
+
+
+
+
 class Mongo:
     #def connect_to_mongo():
     #    mongo_uri = "mongodb+srv://yaelbar:q1w2e3r4t5@mpt-cluster.riqpsu9.mongodb.net/?retryWrites=true&w=majority&appName=MPTCluster"
@@ -621,12 +625,12 @@ class Mongo:
         result = collection.insert_one(data)
         
         print ("insert result :" , result)
-        #result_str = str(result)
+        #result_str = json.decoder(result)
         #result_id = str(result["_id"])
         
-        if result.inserted_id:
+        if result:
 
-            return jsonify(response="Registration successful.", _id=result.inserted_id), 200
+            return jsonify(response="Registration successful.", _id=str(result['_id'])), 200
         else:
             return jsonify(response="Registration failed."), 400
 
