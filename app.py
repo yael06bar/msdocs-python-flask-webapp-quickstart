@@ -494,15 +494,40 @@ def do_register():
             #data['password'] = encrypt_password(data['password'])
 
             #collection = Mongo.connect_to_mongo()
-            response, status_code = Mongo.register_user(collectionUsers, data)
-            print("response:", response)
-            return response, status_code
+            #response, status_code = Mongo.register_user(collectionUsers, data)
+            #print("response:", response)
+            #return response, status_code
+            print ("Starting Register User to DB...")
+        
+            # Check if the user already exists
+            query = {"username": data.get("username")}
+            print("query:", query)
+
+            existing_user = collection.find_one(query)
+            print("existing user:", existing_user)
+
+            if existing_user:
+                responseExistingUser="Registration unsuccessful. User already exists."
+                print("Response Existing User:", responseExistingUser)
+                return jsonify(responseExistingUser), 401
+
+
+            # Insert the new user into the MongoDB collection
+
+            print("Data from Client : " , str(data))
+            result = collection.insert_one(data)
+            
+            print ("insert result id:" , str(result.inserted_id))
+
+
+            return jsonify(success=True, _id=str(result.inserted_id)), 200
+        
 
         except Exception as e:
-            print(f"Exception during registration: {e}")
-            return jsonify(error=str(e)), 400
+          print ("error in server is :", str(e))
+          return jsonify(success=False, error=str(e)), 400
     else:
-        return jsonify(error='Invalid method'), 405
+        return jsonify(success=False,error='Invalid method'), 405
 
 @app.route('/create_workout', methods=['POST'])    
 
@@ -604,35 +629,36 @@ class Mongo:
             print("Invalid uid provided.")
             return None
 
-    def register_user(collection, data):
-        print ("Starting Register User...")
-        #query = {"username":"yaelbar","password":"12345","name":"Yael Bar","phoneNumber":"0556669708"}
+    # def register_user(collection, data):
+    #     print ("Starting Register User...")
         
-        # Check if the user already exists
-        query = {"username": data.get("username")}
-        print("query:", query)
+    #     # Check if the user already exists
+    #     query = {"username": data.get("username")}
+    #     print("query:", query)
 
-        existing_user = collection.find_one(query)
-        print("existing user:", existing_user)
+    #     existing_user = collection.find_one(query)
+    #     print("existing user:", existing_user)
 
-        if existing_user:
-            responseExistingUser="Registration unsuccessful. User already exists."
-            print("Response Existing User:", responseExistingUser)
-            return jsonify(responseExistingUser), 401
+    #     if existing_user:
+    #         responseExistingUser="Registration unsuccessful. User already exists."
+    #         print("Response Existing User:", responseExistingUser)
+    #         return jsonify(responseExistingUser), 401
 
 
-        # Insert the new user into the MongoDB collection
-        result = collection.insert_one(data)
+    #     # Insert the new user into the MongoDB collection
+    #     #print ("Data is of type :" , type(data))
+    #     print("Data from Client : " , str(data))
+    #     result = collection.insert_one(data)
         
-        print ("insert result :" , result)
-        #result_str = json.decoder(result)
-        #result_id = str(result["_id"])
+    #     print ("insert result id:" , result.inserted_id)
+    #     #result_str = json.decoder(result)
+    #     #result_id = str(result["_id"])
         
-        if result:
+    #     #if result:
 
-            return jsonify(response="Registration successful.", _id=str(result['_id'])), 200
-        else:
-            return jsonify(response="Registration failed."), 400
+    #     return jsonify(success=True, _id=str(result["_id"])), 200
+    #     #else:
+    #     #    return jsonify(success=False), 400
 
     def create_workout(collection, uid , workoutPlan):
         print ("Starting Create Workout...")
