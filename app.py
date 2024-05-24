@@ -1,7 +1,11 @@
 import os
 import bson
 import json
-
+import http.client
+#import openai
+#import requests # type: ignore
+#user api key : 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
+#project api key : sk-proj-fOnWnLeRezLCxNr0UPLKT3BlbkFJZqL0AntfRXHkOkybeMFL
 from bson import ObjectId
 from flask import (Flask, jsonify, redirect, render_template, request,
                    send_from_directory, url_for)
@@ -120,89 +124,151 @@ def remove_book(book_id: str):
     # Decrypt the password
 #    return cipher_suite.decrypt(encrypted_password).decode()
 
-#app = Flask(_name_)
-#CORS(app, resources={r"/*": {"origins": "http://localhost:5000"}})  # Replace YOUR_FLUTTER_PORT with the port your Flutter app is running on
 
 # Example endpoint to receive a parameter in the URL and return a response
-@app.route('/receive-json', methods=['POST'])
+def call_chat_gpt_api(prompt):
+    try:
+        # Establish connection to the API endpoint
+        conn = http.client.HTTPSConnection("api.openai.com")
+        
+        # Set headers
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
+        }
+        #api_key = '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'
+        # Prepare the data to send
+        payload = {
+            "model": "gpt-4-turbo",  # Model name
+            "response_format": {"type": "json_object"},
+            "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant. Your response should be in JSON format."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": prompt
+              },
+            ]
+          }
+        ] 
+            #"max_tokens": 1000              # Max tokens to generate
+        }
+        
+        # Convert payload to JSON
+        json_payload = json.dumps(payload)
+        
+        # Send POST request to the API
+        conn.request("POST", "/v1/chat/completions", json_payload, headers)
+        
+        # Get response
+        response = conn.getresponse()
+        
+        # Read response data
+        data = response.read().decode("utf-8")
+        
+        # Print response data for debugging
+        print("Response:", data)
+        
+        # Convert response JSON to dictionary
+        response_data = json.loads(data)
+        
+        # Check if 'choices' key exists in response
+        if 'choices' in response_data:
+            # Return the generated text
+            return response_data['choices'][0]['message']['content']
+        else:
+            print("Unexpected response format:", response_data)
+            return None
+        
+    except Exception as e:
+        print("Error:", e)
+        return None
 
-def receive_json():
-    if request.method == 'POST':
-        try:
-            print('Client Connected!')
-            data = request.get_json()  # Access JSON data
-            # Process the received JSON data
-            # For demonstration purposes, returning the received data itself
-            return jsonify(received_data=data)
-        except Exception as e:
-            return jsonify(error=str(e)), 400  # Return an error response in case of any issue with the JSON data
-    else:
-        return jsonify(error='Invalid method'), 405  # Return an error if the request method is not POST
+@app.route('/gpt', methods=['POST'])
+def gpt():
+    try:
+        # Get the prompt from the POST request
+        prompt = "hello , who is the president of US today?"
+        
+        # Print request data for debugging
+        print("Request data:", request.form)
+        
+        generated_text = call_chat_gpt_api(prompt)
+        return jsonify({"generated_text": generated_text})
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": str(e)})      
 
 
 class OpenAiServer:
     # Replace 'YOUR_API_KEY' with your actual OpenAI API key
-    api_key = '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'
-    api_url = 'https://api.openai.com/v1/chat/completions'
-    
+    api_key = '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'
+    #api_url = 'https://api.openai.com/v1/chat/completions'
+    api_url = 'api.openai.com'
+
     def ask_gpt_about_workout_plan(self, gender, age, height, weight, training_frequency, fitness_level):
         gpt_prompt = f'create a workout plan for the gym (that consists of : a random 2-3 warmup exercises, 4-5 random hard strength exercises , different for each day , and a random 2-3 stretching exercises in the end for each day of workout) for the following properties: gender: {gender} age: {age} height: {height}, weight: {weight}, training Frequency in days per week: {training_frequency}, level at the gym: {fitness_level}. return the plan as a json format without the intro. for each exercise show a description of 2-3 sentences. \
         dont forget to match between the {training_frequency} to the amount of the workout plan days. \
         for example if {training_frequency} is 5, show me a workout plan of 5 days per week,'
 
         
-        json_example = """workout plan example for 4 days:
+        json_example = """workout plan example for 5 days:
         {
   "Day 1": {
     "Warmup": {
       "Exercise 1": {
         "Name": "Jumping Jacks",
         "Description": "Start your workout with jumping jacks to elevate your heart rate and warm up your entire body. Jumping jacks engage multiple muscle groups and help improve cardiovascular endurance, setting a strong foundation for the rest of your session.",
-        "Image_URL": "https://i.ibb.co/2hDNR4C/jumping-jacks.jpg"
+        "Image_URL": "https://i.ibb.co/YDJ9BRG/Jumping-jacks.jpg"
       },
       "Exercise 2": {
         "Name": "Arm Circles",
         "Description": "Follow up with arm circles to increase shoulder mobility and flexibility. Arm circles also help in loosening up the shoulder joints, reducing the risk of injury during strength training exercises.",
-        "Image_URL": "https://i.ibb.co/6tWJ9RL/arm-circles.jpg"
+        "Image_URL": "https://i.ibb.co/WD07QBF/arm-circles.jpg"
       }
     },
     "Strength_Exercises": {
       "Exercise 1": {
         "Name": "Deadlifts",
         "Description": "Incorporate deadlifts to strengthen your posterior chain, including your lower back, glutes, and hamstrings. Deadlifts are a powerful compound movement that promotes functional strength and muscle growth.",
-        "Image_URL": "https://i.ibb.co/wJcRq78/Romanian-deadlifts.jpg"
+        "Image_URL": "https://i.ibb.co/ygw8qxd/Deadlifts.jpg"
       },
       "Exercise 2": {
         "Name": "Bench Press",
         "Description": "Include bench press to develop upper body strength, particularly targeting the chest, shoulders, and triceps. Bench press is a key exercise for building muscle mass and improving pushing strength.",
-        "Image_URL": "https://i.ibb.co/bXn3KbS/bench-press.jpg"
+        "Image_URL": "https://i.ibb.co/YdKKKmy/Bench-Press.jpg"
       },
       "Exercise 3": {
         "Name": "Pull-Ups",
         "Description": "Integrate pull-ups into your routine to strengthen your back, biceps, and grip. Pull-ups are a challenging bodyweight exercise that enhance upper body muscle definition and improve overall pulling strength.",
-        "Image_URL": "https://i.ibb.co/3hLd0kH/pull-ups.jpg"
+        "Image_URL": "https://i.ibb.co/By8t61S/Pull-Ups.jpg"
       },
       "Exercise 4": {
         "Name": "Overhead Press",
         "Description": "Incorporate overhead press to build shoulder strength and stability. Overhead press targets the deltoids, triceps, and upper back muscles, contributing to balanced upper body development.",
-        "Image_URL": "https://i.ibb.co/qJ9Lwqg/overhead-press.jpg"
+        "Image_URL": "https://i.ibb.co/Y0HFCN7/Overhead-Press.jpg"
       },
       "Exercise 5": {
         "Name": "Lat Pulldowns",
         "Description": "Perform lat pulldowns to strengthen your latissimus dorsi, biceps, and upper back. Lat pulldowns help in improving back aesthetics and overall upper body strength.",
-        "Image_URL": "https://i.ibb.co/gRTYHD8/Lat-Pulldowns.webp"
+        "Image_URL": "https://i.ibb.co/yh6ZZH0/Lat-Pulldowns.webp"
       }
     },
     "Stretching": {
       "Exercise 1": {
         "Name": "Forward Fold",
         "Description": "Finish your workout with a forward fold to stretch your hamstrings and lower back. This helps in relieving tension built up during the workout and promotes flexibility.",
-        "Image_URL": "https://i.ibb.co/CtVXdg4/forward-fold.jpg"
+        "Image_URL": "https://i.ibb.co/xH33Smg/Forward-Fold.jpg"
       },
       "Exercise 2": {
         "Name": "Chest Stretch",
         "Description": "Conclude your session with a chest stretch to open up your chest and shoulders. This stretch helps in improving posture and reducing tightness in the chest muscles.",
-        "Image_URL": "https://i.ibb.co/WW8Wxfv/chest-stretch.jpg"
+        "Image_URL": "https://i.ibb.co/2qs6TH7/Chest-Stretch.webp"
       }
     }
   },
@@ -211,51 +277,51 @@ class OpenAiServer:
       "Exercise 1": {
         "Name": "High Knees",
         "Description": "Start your workout with high knees to increase your heart rate and warm up your lower body. High knees also help in improving coordination and agility.",
-        "Image_URL": "https://i.ibb.co/pX3S3vL/high-knees.jpg"
+        "Image_URL": "https://i.ibb.co/d6BXzrk/High-knees.webp"
       },
       "Exercise 2": {
         "Name": "Jump Rope",
         "Description": "Follow up with jump rope to further elevate your heart rate and enhance coordination. Jump rope is a versatile exercise that targets multiple muscle groups while improving cardiovascular fitness.",
-        "Image_URL": "https://i.ibb.co/27wkBBx/jump-rope.jpg"
+        "Image_URL": "https://i.ibb.co/bgPgf1k/Jump-Rope.png"
       }
     },
     "Strength_Exercises": {
       "Exercise 1": {
         "Name": "Squats",
         "Description": "Perform squats to target your quadriceps, hamstrings, and glutes. Squats are a fundamental compound exercise that builds lower body strength and enhances overall stability and balance.",
-        "Image_URL": "https://i.ibb.co/7Gkpxdt/squats.jpg"
+        "Image_URL": "https://i.ibb.co/vvGK5w1/Squat.jpg"
       },
       "Exercise 2": {
         "Name": "Deadlifts",
         "Description": "Incorporate deadlifts to strengthen your posterior chain, including your lower back, glutes, and hamstrings. Deadlifts are a powerful compound movement that promotes functional strength and muscle growth.",
-        "Image_URL": "https://i.ibb.co/wJcRq78/Romanian-deadlifts.jpg"
+        "Image_URL": "https://i.ibb.co/ygw8qxd/Deadlifts.jpg"
       },
       "Exercise 3": {
         "Name": "Push-Ups",
         "Description": "Include push-ups to develop upper body strength, targeting the chest, shoulders, and triceps. Push-ups also engage the core muscles and improve overall muscular endurance.",
-        "Image_URL": "https://i.ibb.co/Tw5SsT5/push-ups.jpg"
+        "Image_URL": "https://i.ibb.co/dbr0L5q/Push-Ups.jpg"
       },
       "Exercise 4": {
         "Name": "Barbell Rows",
         "Description": "Integrate barbell rows to strengthen your upper back, biceps, and grip. Barbell rows also improve posture and help in preventing upper back pain.",
-        "Image_URL": "https://i.ibb.co/cL3pMwr/barbell-rows.jpg"
+        "Image_URL": "https://i.ibb.co/WBT0TnS/Barbell-Rows.webp"
       },
       "Exercise 5": {
         "Name": "Dumbbell Lunges",
         "Description": "Perform dumbbell lunges to target your quadriceps, hamstrings, and glutes. Lunges help in improving lower body strength and balance while enhancing hip flexibility.",
-        "Image_URL": "https://i.ibb.co/YkfwJQ8/dumbbell-lunges.jpg"
+        "Image_URL": "https://i.ibb.co/NghffkK/Dumbbell-Lunges.jpg"
       }
     },
     "Stretching": {
       "Exercise 1": {
         "Name": "Hamstring Stretch",
         "Description": "Finish your workout with a hamstring stretch to improve flexibility and reduce the risk of injury. Hamstring stretches target the muscles at the back of your thighs, helping in relieving tightness and promoting better range of motion.",
-        "Image_URL": "https://i.ibb.co/J2fDmsN/hamstring-stretch.jpg"
+        "Image_URL": "https://i.ibb.co/4dLDVh8/Hamstring-Stretch.jpg"
       },
       "Exercise 2": {
         "Name": "Shoulder Stretch",
         "Description": "Conclude your session with a shoulder stretch to alleviate tension and improve mobility in the shoulder joints. Shoulder stretches target the deltoids and rotator cuff muscles, promoting better posture and reducing stiffness.",
-        "Image_URL": "https://i.ibb.co/0hV4L3m/shoulder-stretch.jpg"
+        "Image_URL": "https://i.ibb.co/1R5Gk9h/Shoulder-Stretch.webp"
       }
     }
   },
@@ -264,51 +330,46 @@ class OpenAiServer:
       "Exercise 1": {
         "Name": "Burpees",
         "Description": "Start your workout with burpees to elevate your heart rate and engage multiple muscle groups. Burpees are an efficient full-body exercise that improves cardiovascular fitness and boosts metabolism.",
-        "Image_URL": "https://i.ibb.co/tJhNqkJ/burpees.jpg"
+        "Image_URL": "https://i.ibb.co/C73CrMY/Burpees.jpg"
       },
       "Exercise 2": {
         "Name": "Mountain Climbers",
         "Description": "Follow up with mountain climbers to further activate your core and lower body muscles. Mountain climbers also help in improving coordination and agility.",
-        "Image_URL": "https://i.ibb.co/cY9GzQW/mountain-climbers.jpg"
+        "Image_URL": "https://i.ibb.co/VLqwBdg/Mountain-Climbers.png"
       }
     },
     "Strength_Exercises": {
       "Exercise 1": {
         "Name": "Romanian Deadlifts",
         "Description": "Incorporate Romanian deadlifts to target your hamstrings, glutes, and lower back muscles. Romanian deadlifts are effective for strengthening the posterior chain and improving hip hinge mechanics.",
-        "Image_URL": "https://i.ibb.co/wJcRq78/Romanian-deadlifts.jpg"
+        "Image_URL": "https://i.ibb.co/4MCH0hY/Romanian-Deadlifts.webp"
       },
       "Exercise 2": {
         "Name": "Dumbbell Bench Press",
         "Description": "Include dumbbell bench press to develop chest, shoulder, and triceps strength. Dumbbell bench press offers a greater range of motion compared to barbell bench press, enhancing muscle activation and stability.",
-        "Image_URL": "https://i.ibb.co/7WxtsMg/dumbbell-bench-press.jpg"
+        "Image_URL": "https://i.ibb.co/RbJwpvn/Dumbbell-Bench-Press.webp"
       },
       "Exercise 3": {
         "Name": "Chin-Ups",
         "Description": "Integrate chin-ups into your routine to strengthen your back, biceps, and grip. Chin-ups are a challenging bodyweight exercise that improves upper body strength and muscle definition.",
-        "Image_URL": "https://i.ibb.co/TYV8xph/chin-ups.jpg"
+        "Image_URL": "https://i.ibb.co/n67Vpch/Chin-Ups.jpg"
       },
       "Exercise 4": {
         "Name": "Barbell Squats",
         "Description": "Perform barbell squats to target your quadriceps, hamstrings, and glutes. Barbell squats are a compound exercise that builds lower body strength and improves functional movement patterns.",
-        "Image_URL": "https://i.ibb.co/7Gkpxdt/squats.jpg"
-      },
-      "Exercise 5": {
-        "Name": "Dumbbell Shoulder Press",
-        "Description": "Incorporate dumbbell shoulder press to develop shoulder strength and stability. Dumbbell shoulder press targets the deltoids, triceps, and upper back muscles, enhancing overall upper body definition.",
-        "Image_URL": "https://i.ibb.co/Nn2wp1S/dumbbell-shoulder-press.jpg"
+        "Image_URL": "https://i.ibb.co/R2tcgPx/Barbell-squats.jpg"
       }
     },
     "Stretching": {
       "Exercise 1": {
         "Name": "Quad Stretch",
         "Description": "Finish your workout with a quad stretch to release tension in your quadriceps muscles. Quad stretches help in improving flexibility and preventing muscle imbalances.",
-        "Image_URL": "https://i.ibb.co/vBwDnNG/quad-stretch.jpg"
+        "Image_URL": "https://i.ibb.co/4K09n27/Quad-Stretch.jpg"
       },
       "Exercise 2": {
         "Name": "Triceps Stretch",
         "Description": "Conclude your session with a triceps stretch to alleviate tightness in the back of your arms. Triceps stretches help in improving range of motion and reducing the risk of injury.",
-        "Image_URL": "https://i.ibb.co/yhbsmYj/triceps-stretch.jpg"
+        "Image_URL": "https://i.ibb.co/yyhprW7/Triceps-Stretch.jpg"
       }
     }
   },
@@ -317,89 +378,253 @@ class OpenAiServer:
       "Exercise 1": {
         "Name": "Jumping Jacks",
         "Description": "Start your workout with jumping jacks to elevate your heart rate and warm up your entire body. Jumping jacks engage multiple muscle groups and help improve cardiovascular endurance, setting a strong foundation for the rest of your session.",
-        "Image_URL": "https://i.ibb.co/2hDNR4C/jumping-jacks.jpg"
+        "Image_URL": "https://i.ibb.co/YDJ9BRG/Jumping-jacks.jpg"
       },
       "Exercise 2": {
         "Name": "Arm Circles",
         "Description": "Follow up with arm circles to increase shoulder mobility and flexibility. Arm circles also help in loosening up the shoulder joints, reducing the risk of injury during strength training exercises.",
-        "Image_URL": "https://i.ibb.co/6tWJ9RL/arm-circles.jpg"
+        "Image_URL": "https://i.ibb.co/WD07QBF/arm-circles.jpg"
       }
     },
     "Strength_Exercises": {
       "Exercise 1": {
         "Name": "Deadlifts",
         "Description": "Incorporate deadlifts to strengthen your posterior chain, including your lower back, glutes, and hamstrings. Deadlifts are a powerful compound movement that promotes functional strength and muscle growth.",
-        "Image_URL": "https://i.ibb.co/wJcRq78/Romanian-deadlifts.jpg"
+        "Image_URL": "https://i.ibb.co/ygw8qxd/Deadlifts.jpg"
       },
       "Exercise 2": {
         "Name": "Bench Press",
         "Description": "Include bench press to develop upper body strength, particularly targeting the chest, shoulders, and triceps. Bench press is a key exercise for building muscle mass and improving pushing strength.",
-        "Image_URL": "https://i.ibb.co/bXn3KbS/bench-press.jpg"
+        "Image_URL": "https://i.ibb.co/YdKKKmy/Bench-Press.jpg"
       },
       "Exercise 3": {
         "Name": "Pull-Ups",
         "Description": "Integrate pull-ups into your routine to strengthen your back, biceps, and grip. Pull-ups are a challenging bodyweight exercise that enhance upper body muscle definition and improve overall pulling strength.",
-        "Image_URL": "https://i.ibb.co/3hLd0kH/pull-ups.jpg"
+        "Image_URL": "https://i.ibb.co/8cG66R9/Pull-Ups.jpg"
       },
       "Exercise 4": {
         "Name": "Overhead Press",
         "Description": "Incorporate overhead press to build shoulder strength and stability. Overhead press targets the deltoids, triceps, and upper back muscles, contributing to balanced upper body development.",
-        "Image_URL": "https://i.ibb.co/qJ9Lwqg/overhead-press.jpg"
+        "Image_URL": "https://i.ibb.co/SRhMsNN/Overhead-Press.jpg"
       },
       "Exercise 5": {
         "Name": "Lat Pulldowns",
         "Description": "Perform lat pulldowns to strengthen your latissimus dorsi, biceps, and upper back. Lat pulldowns help in improving back aesthetics and overall upper body strength.",
-        "Image_URL": "https://i.ibb.co/gRTYHD8/Lat-Pulldowns.webp"
+        "Image_URL": "https://i.ibb.co/7kqQQwN/Lat-Pulldowns.webp"
       }
     },
     "Stretching": {
       "Exercise 1": {
         "Name": "Forward Fold",
         "Description": "Finish your workout with a forward fold to stretch your hamstrings and lower back. This helps in relieving tension built up during the workout and promotes flexibility.",
-        "Image_URL": "https://i.ibb.co/CtVXdg4/forward-fold.jpg"
+        "Image_URL": "https://i.ibb.co/xH33Smg/Forward-Fold.jpg"
       },
       "Exercise 2": {
         "Name": "Chest Stretch",
         "Description": "Conclude your session with a chest stretch to open up your chest and shoulders. This stretch helps in improving posture and reducing tightness in the chest muscles.",
-        "Image_URL": "https://i.ibb.co/WW8Wxfv/chest-stretch.jpg"
+        "Image_URL": "https://i.ibb.co/2qs6TH7/Chest-Stretch.webp"
+      }
+    }
+  },
+  "Day 5": {
+    "Warmup": {
+      "Exercise 1": {
+        "Name": "Burpees",
+        "Description": "Start your workout with burpees to elevate your heart rate and engage multiple muscle groups. Burpees are an efficient full-body exercise that improves cardiovascular fitness and boosts metabolism.",
+        "Image_URL": "https://i.ibb.co/C73CrMY/Burpees.jpg"
+      },
+      "Exercise 2": {
+        "Name": "Arm Circles",
+        "Description": "Follow up with arm circles to increase shoulder mobility and flexibility. Arm circles also help in loosening up the shoulder joints, reducing the risk of injury during strength training exercises.",
+        "Image_URL": "https://i.ibb.co/WD07QBF/arm-circles.jpg"
+      }
+    },
+    "Strength_Exercises": {
+      "Exercise 1": {
+        "Name": "Romanian Deadlifts",
+        "Description": "Incorporate Romanian deadlifts to target your hamstrings, glutes, and lower back muscles. Romanian deadlifts are effective for strengthening the posterior chain and improving hip hinge mechanics.",
+        "Image_URL": "https://i.ibb.co/4MCH0hY/Romanian-Deadlifts.webp"
+      },
+      "Exercise 2": {
+        "Name": "Dumbbell Bench Press",
+        "Description": "Include dumbbell bench press to develop chest, shoulder, and triceps strength. Dumbbell bench press offers a greater range of motion compared to barbell bench press, enhancing muscle activation and stability.",
+        "Image_URL": "https://i.ibb.co/RbJwpvn/Dumbbell-Bench-Press.webp"
+      },
+      "Exercise 3": {
+        "Name": "Pull-Ups",
+        "Description": "Integrate pull-ups into your routine to strengthen your back, biceps, and grip. Pull-ups are a challenging bodyweight exercise that enhance upper body muscle definition and improve overall pulling strength.",
+        "Image_URL": "https://i.ibb.co/8cG66R9/Pull-Ups.jpg"
+      },
+      "Exercise 4": {
+        "Name": "Overhead Press",
+        "Description": "Incorporate overhead press to build shoulder strength and stability. Overhead press targets the deltoids, triceps, and upper back muscles, contributing to balanced upper body development.",
+        "Image_URL": "https://i.ibb.co/Ypz1R22/Overhead-Press.jpg"
+      }
+    },
+    "Stretching": {
+      "Exercise 1": {
+        "Name": "Quad Stretch",
+        "Description": "Finish your workout with a quad stretch to release tension in your quadriceps muscles. Quad stretches help in improving flexibility and preventing muscle imbalances.",
+        "Image_URL": "https://i.ibb.co/4K09n27/Quad-Stretch.jpg"
+      },
+      "Exercise 2": {
+        "Name": "Triceps Stretch",
+        "Description": "Conclude your session with a triceps stretch to alleviate tightness in the back of your arms. Triceps stretches help in improving range of motion and reducing the risk of injury.",
+        "Image_URL": "https://i.ibb.co/yyhprW7/Triceps-Stretch.jpg"
       }
     }
   }
 }
-"""
+suitable between the name of the exercise to the image, base on this list and on the example above (in the Image_URL): https://i.ibb.co/NmTWd8s/Bulgarian-Split-Squats.webp
+    https://i.ibb.co/4V5FPqZ/Face-Pulls.jpg
+    https://i.ibb.co/YdKKKmy/Bench-Press.jpg
+    https://i.ibb.co/d6BXzrk/High-knees.webp
+    https://i.ibb.co/YDJ9BRG/Jumping-jacks.jpg
+    https://i.ibb.co/WD07QBF/arm-circles.jpg
+    https://i.ibb.co/mbynZw7/Wall-sit.jpg
+    https://i.ibb.co/z5KLmFx/Goblet-Squats.webp
+    https://i.ibb.co/zGcGSWN/Sumo-Squats.jpg
+    https://i.ibb.co/NFzwW0b/Leg-Extension-Machine.webp
+    https://i.ibb.co/jZkgnHx/Leg-Curl-Machine.webp
+    https://i.ibb.co/tmyFCWB/Box-Jumps.jpg
+    https://i.ibb.co/qB5WrvT/Glute-Bridges.jpg
+    https://i.ibb.co/YB3Yr4H/Step-Ups.jpg
+    https://i.ibb.co/L5KTL6r/Hiptrust.webp
+    https://i.ibb.co/L8Mnd4H/Leg-Press.png
+    https://i.ibb.co/QY76D23/Calf-Raises.jpg
+    https://i.ibb.co/4MCH0hY/Romanian-Deadlifts.webp
+    https://i.ibb.co/yRmZc2P/Lunges.jpg
+    https://i.ibb.co/ygw8qxd/Deadlifts.jpg
+    https://i.ibb.co/vvGK5w1/Squat.jpg
+    https://i.ibb.co/MP7gL48/Superman.webp
+    https://i.ibb.co/qrh2DNz/Crunches.jpg
+    https://i.ibb.co/tXN4pgF/Leg-Raises.jpg
+    https://i.ibb.co/V2zwzdK/Bicycle-Crunches.jpg
+    https://i.ibb.co/qxYm52k/Russian-Twists.jpg
+    https://i.ibb.co/0qJ1WN5/Plank.jpg
+    https://i.ibb.co/Zm5RGMW/Incline-Bench-Press.webp
+    https://i.ibb.co/bRQ5Fwm/Chest-Flyes.webp
+    https://i.ibb.co/R2tcgPx/Barbell-squats.jpg
+    https://i.ibb.co/n67Vpch/Chin-Ups.jpg
+    . 
+    dont show an image with unmatching name for the exercise. for exmaple dont show the : 
+    https://i.ibb.co/0qJ1WN5/Plank.jpg for deadlifts.. or https://i.ibb.co/YDJ9BRG/Jumping-jacks.jpg for Dumbbell Bench Press.
+    check twice or more your suitable image for the name of the exercise!
+    show only the matching image by its name of the link!
+    
+    if you dont find any suitable image show the default: https://i.ibb.co/f22FSXQ/My-Personal-Trainer-Logo.png"""
 
         # jpg_text += ""        
         # gpt_prompt += jpg_text
         gpt_prompt += json_example
         #print("prompt is : " + gpt_prompt)
         headers = {
-                    'Content-Type': 'application/json',
-                    'Authorization': f'Bearer {self.api_key}'
-                }
-        request_body = {
-            "model": "gpt-3.5-turbo",
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": gpt_prompt}
-            ]
+            "Content-Type": "application/json",
+            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
         }
+        
+        # Prepare the data to send
+        payload = {
+            "model": "gpt-4-turbo",  # Model name
+            "response_format": {"type": "json_object"},
+            "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant. Your response should be in JSON format."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": gpt_prompt
+              },
+            ]
+          }
+        ] 
+            #"max_tokens": 1000              # Max tokens to generate
+        }
+        #request_body = {
+        #    "model": "gpt-3.5-turbo",
+        #    "messages": [
+        #        {"role": "system", "content": "You are a helpful assistant."},
+        #        {"role": "user", "content": gpt_prompt}
+        #    ]
+        #}
 
         try:
-            response = request.post(
-                self.api_url,
-                headers=headers,
-                data=json.dumps(request_body)
-            )
+            # response = request.post(
+            #     self.api_url,
+            #     headers=headers,
+            #     data=json.dumps(payload)#request_body)
+            # )
+            # Convert payload to JSON
+            json_payload = json.dumps(payload)
+            
+            # Send POST request to the API
+            conn = http.client.HTTPSConnection("api.openai.com")
+            conn.request("POST", "/v1/chat/completions", json_payload, headers)
+            
+            # Get response
+            response = conn.getresponse()
 
-            if response.status_code == 200:
-                response_data = response.json()
+            # Read response data
+            data = response.read().decode("utf-8")
+            
+            # Print response data for debugging
+            print("Response:", data)
+            
+            # Convert response JSON to dictionary
+            response_data = json.loads(data)
+            
+            # Check if 'choices' key exists in response
+            if 'choices' in response_data:
+                # Return the generated text
+                print ("GPT Response : " , response_data['choices'][0]['message']['content'])
                 return response_data['choices'][0]['message']['content']
             else:
-                raise Exception('Failed to fetch GPT response')
+                print("Unexpected response format:", response_data)
+                return None
+
+            #if response.status_code == 200:
+            #    response_data = response.json()
+            #    return response_data['choices'][0]['message']['content']
+            #else:
+            #    raise Exception('Failed to fetch GPT response')
 
         except Exception as e:
             print(f'Error during API request: {e}')
             raise Exception('Failed to fetch GPT response')
+
+@app.route('/delete_workout', methods=['POST'])        
+def delete_workout():
+    if request.method == 'POST':
+        try:
+            print("Starting delete workout")
+            data = request.get_json()
+            print('User Id :', data)
+            
+            # Check if insertedOnlyObjectId is provided
+            if 'insertedOnlyObjectId' not in data:
+                response_data = {"success": False, "error": "Missing insertedOnlyObjectId"}
+                return jsonify(response_data), 400
+            
+            collection = Mongo.connect_to_mongo()
+            success = Mongo.delete_workout_by_uid(collection, data.get("insertedOnlyObjectId"))
+            
+            if success:
+                response_data = {"success": True, "message": "Workout plan deleted successfully"}
+                return jsonify(response_data), 200
+            else:
+                response_data = {"success": False, "error": "No Workout Plan found."}
+                return jsonify(response_data), 404
+
+        except Exception as e:
+            response_data = {"success": False, "error": str(e)}
+            return jsonify(response_data), 400
+    else:
+        response_data = {"success": False, "error": "Invalid method"}
+        return jsonify(response_data),405
 
 @app.route('/check_server', methods=['POST'])        
 def check_server():
@@ -492,18 +717,14 @@ def do_register():
             print('User details for register:', data)
             # Encrypt the password before storing it
             #data['password'] = encrypt_password(data['password'])
-
-            #collection = Mongo.connect_to_mongo()
-            #response, status_code = Mongo.register_user(collectionUsers, data)
-            #print("response:", response)
-            #return response, status_code
+            
             print ("Starting Register User to DB...")
         
             # Check if the user already exists
             query = {"username": data.get("username")}
             print("query:", query)
 
-            existing_user = collection.find_one(query)
+            existing_user = collectionUsers.find_one(query)
             print("existing user:", existing_user)
 
             if existing_user:
@@ -515,7 +736,7 @@ def do_register():
             # Insert the new user into the MongoDB collection
 
             print("Data from Client : " , str(data))
-            result = collection.insert_one(data)
+            result = collectionUsers.insert_one(data)
             
             print ("insert result id:" , str(result.inserted_id))
 
@@ -532,7 +753,7 @@ def do_register():
 @app.route('/create_workout', methods=['POST'])    
 
 def create_workout():
-        if request.method == 'POST':
+        #if request.method == 'POST':
             try:
                                
                 print("Starting Create Workout")
@@ -544,9 +765,7 @@ def create_workout():
 
                 print ('workout plan : ' + workout_plan)
                 
-                #save request and response to mongo
-                #collection = Mongo.connect_to_mongo()
-                
+              
                 print ("Mongo connected in create_workout")
                 response, status_code = Mongo.create_workout(collectionUsers, data["insertedOnlyObjectId"],workout_plan)
                 
@@ -556,12 +775,8 @@ def create_workout():
                 return response, status_code
 
             except Exception as e:
-                print(f"Exception during registration: {e}")
+                print(f"Exception during create workout: {e}")
                 return jsonify(error=str(e)), 400
-        else:
-            return jsonify(error='Invalid method'), 405
-
-
 
 
 class Mongo:
