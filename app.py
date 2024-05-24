@@ -1,4 +1,5 @@
 import os
+import traceback
 import bson
 import json
 import http.client
@@ -596,35 +597,37 @@ suitable between the name of the exercise to the image, base on this list and on
             print(f'Error during API request: {e}')
             raise Exception('Failed to fetch GPT response')
 
-@app.route('/delete_workout', methods=['POST'])        
-def delete_workout():
-    if request.method == 'POST':
-        try:
-            print("Starting delete workout")
-            data = request.get_json()
-            print('User Id :', data)
-            
-            # Check if insertedOnlyObjectId is provided
-            if 'insertedOnlyObjectId' not in data:
-                response_data = {"success": False, "error": "Missing insertedOnlyObjectId"}
-                return jsonify(response_data), 400
-            
-            collection = Mongo.connect_to_mongo()
-            success = Mongo.delete_workout_by_uid(collection, data.get("insertedOnlyObjectId"))
-            
-            if success:
-                response_data = {"success": True, "message": "Workout plan deleted successfully"}
-                return jsonify(response_data), 200
-            else:
-                response_data = {"success": False, "error": "No Workout Plan found."}
-                return jsonify(response_data), 404
 
-        except Exception as e:
-            response_data = {"success": False, "error": str(e)}
+@app.route('/delete_workout', methods=['POST'])
+def delete_workout():
+    try:
+        print("Starting delete workout")
+        data = request.get_json()
+        print('Data:', data)
+
+        uid = data.get("insertedOnlyObjectId")
+        print('UId:', uid)
+
+        if not uid:
+            response_data = {"success": False, "error": "Missing insertedOnlyObjectId"}
             return jsonify(response_data), 400
-    else:
-        response_data = {"success": False, "error": "Invalid method"}
-        return jsonify(response_data),405
+
+        #collection = Mongo.connect_to_mongo()
+        success = Mongo.delete_workout_by_uid(collectionUsers, uid)
+
+        if success:
+            response_data = {"success": True, "message": "Workout plan deleted successfully"}
+            return jsonify(response_data), 200
+        else:
+            response_data = {"success": False, "error": "No Workout Plan found or deletion failed."}
+            return jsonify(response_data), 404
+
+    except Exception as e:
+        print(f"Exception in delete_workout: {e}")
+        traceback.print_exc()
+        response_data = {"success": False, "error": str(e)}
+        return jsonify(response_data), 400
+
 
 @app.route('/check_server', methods=['POST'])        
 def check_server():
@@ -844,36 +847,22 @@ class Mongo:
             print("Invalid uid provided.")
             return None
 
-    # def register_user(collection, data):
-    #     print ("Starting Register User...")
-        
-    #     # Check if the user already exists
-    #     query = {"username": data.get("username")}
-    #     print("query:", query)
+    def delete_workout_by_uid(collection, uid):
+        try:
+            object_id = ObjectId(uid)
+            print('ObjectId:', object_id)
+            existing_workout = collection.find_one({"_id": object_id})
+            print('Existing workout:', existing_workout)
+            if existing_workout:
+                result = collection.update_one({"_id": object_id}, {"$unset": {"workout_plan": ""}})
+                return result.modified_count > 0
+            else:
+                return False
+        except Exception as e:
+            print(f"Error in delete_workout_by_uid: {e}")
+            traceback.print_exc()
+            return False
 
-    #     existing_user = collection.find_one(query)
-    #     print("existing user:", existing_user)
-
-    #     if existing_user:
-    #         responseExistingUser="Registration unsuccessful. User already exists."
-    #         print("Response Existing User:", responseExistingUser)
-    #         return jsonify(responseExistingUser), 401
-
-
-    #     # Insert the new user into the MongoDB collection
-    #     #print ("Data is of type :" , type(data))
-    #     print("Data from Client : " , str(data))
-    #     result = collection.insert_one(data)
-        
-    #     print ("insert result id:" , result.inserted_id)
-    #     #result_str = json.decoder(result)
-    #     #result_id = str(result["_id"])
-        
-    #     #if result:
-
-    #     return jsonify(success=True, _id=str(result["_id"])), 200
-    #     #else:
-    #     #    return jsonify(success=False), 400
 
     def create_workout(collection, uid , workoutPlan):
         print ("Starting Create Workout...")
