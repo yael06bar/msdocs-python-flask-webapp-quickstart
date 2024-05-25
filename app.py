@@ -5,8 +5,8 @@ import json
 import http.client
 #import openai
 #import requests # type: ignore
-#user api key : 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
-#project api key : sk-proj-fOnWnLeRezLCxNr0UPLKT3BlbkFJZqL0AntfRXHkOkybeMFL
+
+#project api key : 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
 from bson import ObjectId
 from flask import (Flask, jsonify, redirect, render_template, request,
                    send_from_directory, url_for)
@@ -135,7 +135,7 @@ def call_chat_gpt_api(prompt):
         # Set headers
         headers = {
             "Content-Type": "application/json",
-            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
+            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
         }
         #api_key = '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'
         # Prepare the data to send
@@ -208,7 +208,7 @@ def gpt():
 
 class OpenAiServer:
     # Replace 'YOUR_API_KEY' with your actual OpenAI API key
-    api_key = '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'
+    api_key = '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'
     #api_url = 'https://api.openai.com/v1/chat/completions'
     api_url = 'api.openai.com'
 
@@ -521,7 +521,7 @@ suitable between the name of the exercise to the image, base on this list and on
         #print("prompt is : " + gpt_prompt)
         headers = {
             "Content-Type": "application/json",
-            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
+            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
         }
         
         # Prepare the data to send
