@@ -1,19 +1,19 @@
 import os
 import traceback
-import bson
+import bson # type: ignore
 import json
 import http.client
-#import openai
-#import requests # type: ignore
+
+from cryptography.fernet import Fernet # type: ignore
 
 #project api key : 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
-from bson import ObjectId
-from flask import (Flask, jsonify, redirect, render_template, request,
+from bson import ObjectId # type: ignore
+from flask import (Flask, jsonify, redirect, render_template, request, # type: ignore
                    send_from_directory, url_for)
 
-from pymongo import MongoClient
-from pymongo.collection import Collection
-from pymongo.database import Database
+from pymongo import MongoClient # type: ignore
+from pymongo.collection import Collection # type: ignore
+from pymongo.database import Database # type: ignore
 
 # access your MongoDB Atlas cluster
 #load_dotenv()
@@ -25,6 +25,8 @@ database: Database = mongo_client.get_database("bookshelf")
 collection: Collection = database.get_collection("books")
 
 collectionUsers: Collection = database.get_collection("users")
+key = Fernet.generate_key()
+fernet = Fernet(key)
 
 app = Flask(__name__)
 
@@ -102,29 +104,8 @@ def remove_book(book_id: str):
    return f"DELETE: Your book (id = {book_id}) has been removed from your bookshelf.\n"
 
 ###############################################################
-# app.py
-
-# from flask import Flask, request, jsonify
-# from flask_cors import CORS, cross_origin
-# import requests
-
-# from pymongo import MongoClient
-
-
-#from cryptography.fernet import Fernet # type: ignore
-
-# Generate a secret key for encryption
-#secret_key = Fernet.generate_key()
-#cipher_suite = Fernet(secret_key)
-
-#def encrypt_password(password):
-    # Encrypt the password
-#    return cipher_suite.encrypt(password.encode())
-
-#def decrypt_password(encrypted_password):
-    # Decrypt the password
-#    return cipher_suite.decrypt(encrypted_password).decode()
-
+key = Fernet.generate_key()
+fernet = Fernet(key)
 
 # Example endpoint to receive a parameter in the URL and return a response
 def call_chat_gpt_api(prompt):
@@ -651,6 +632,7 @@ def do_login():
             data = request.get_json()
             username = data.get("username")
             password = data.get("password")
+            
 
             if not username or not password:
                 return jsonify(success=False, response="Username and password are required."), 400
@@ -660,8 +642,11 @@ def do_login():
 
             if user_doc:
                 # Decrypt the stored password for comparison
-                stored_password = user_doc["password"] #decrypt_password(user_doc["password"])
-                if stored_password == password:
+                stored_password = user_doc["password"] 
+                # After retrieving the stored encrypted password and key from the database
+                
+                decrypted_password = fernet.decrypt(stored_password).decode()
+                if decrypted_password == password:
                     print("login: _id=", user_doc["_id"])
                     
                 # if user_doc["password"] == password:
@@ -739,6 +724,8 @@ def do_register():
             # Insert the new user into the MongoDB collection
 
             print("Data from Client : " , str(data))
+            data['password'] = fernet.encrypt(data['password'].encode())
+            print("Data after encryption : " , str(data))
             result = collectionUsers.insert_one(data)
             
             print ("insert result id:" , str(result.inserted_id))
