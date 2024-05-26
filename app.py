@@ -6,7 +6,7 @@ import http.client
 
 from cryptography.fernet import Fernet # type: ignore
 
-#project api key : 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
+#project api key : sk-proj-t6V4z2BCXGS9i2e2A7jaT3BlbkFJVOUCg85KM8LZQ1tLQQfL
 from bson import ObjectId # type: ignore
 from flask import (Flask, jsonify, redirect, render_template, request, # type: ignore
                    send_from_directory, url_for)
@@ -25,7 +25,7 @@ database: Database = mongo_client.get_database("bookshelf")
 collection: Collection = database.get_collection("books")
 
 collectionUsers: Collection = database.get_collection("users")
-key = Fernet.generate_key()
+key = "a7zXj8pQKRd_r7Cz7e_TRLIuT_7T2Aq2Uv6t4R9QRUI="#Fernet.generate_key()
 fernet = Fernet(key)
 
 app = Flask(__name__)
@@ -116,7 +116,7 @@ def call_chat_gpt_api(prompt):
         # Set headers
         headers = {
             "Content-Type": "application/json",
-            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
+            "Authorization": "Bearer sk-proj-t6V4z2BCXGS9i2e2A7jaT3BlbkFJVOUCg85KM8LZQ1tLQQfL"
         }
         #api_key = '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'
         # Prepare the data to send
@@ -189,7 +189,7 @@ def gpt():
 
 class OpenAiServer:
     # Replace 'YOUR_API_KEY' with your actual OpenAI API key
-    api_key = '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'
+    api_key = 'sk-proj-t6V4z2BCXGS9i2e2A7jaT3BlbkFJVOUCg85KM8LZQ1tLQQfL'
     #api_url = 'https://api.openai.com/v1/chat/completions'
     api_url = 'api.openai.com'
 
@@ -502,7 +502,7 @@ suitable between the name of the exercise to the image, base on this list and on
         #print("prompt is : " + gpt_prompt)
         headers = {
             "Content-Type": "application/json",
-            "Authorization": "Bearer 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"  # Replace YOUR_API_KEY with your actual API key
+            "Authorization": "Bearer sk-proj-t6V4z2BCXGS9i2e2A7jaT3BlbkFJVOUCg85KM8LZQ1tLQQfL"  # Replace YOUR_API_KEY with your actual API key
         }
         
         # Prepare the data to send
@@ -725,6 +725,7 @@ def do_register():
 
             print("Data from Client : " , str(data))
             data['password'] = fernet.encrypt(data['password'].encode())
+            print('encryption key :', str(key))
             print("Data after encryption : " , str(data))
             result = collectionUsers.insert_one(data)
             
